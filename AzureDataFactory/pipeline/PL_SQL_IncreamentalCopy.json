@@ -1,0 +1,182 @@
+{
+	"name": "PL_SQL_IncreamentalCopy",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup_Old_Watermark_Values",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT TABLENAME, WATERMARKVALUE AS OLDWATERMARKVALUE\nFROM [DBO].[WATERMARK]\nWHERE TABLENAME = '@{pipeline().parameters.TableName}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQDB_INNOVACTION_WATERMARK",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "Lookup_New_Watermark_Values",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT MAX(@{pipeline().parameters.WaterMarkColumn}) as NEWWATERMARKVALUE\nFROM @{pipeline().parameters.TableName}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_SQL_TARGET_DB_SALES_ORDER_DETAIL",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Copy Order Data",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Old_Watermark_Values",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Lookup_New_Watermark_Values",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM @{pipeline().parameters.TableName}\nWHERE @{pipeline().parameters.WaterMarkColumn} > '@{activity('Lookup_Old_Watermark_Values').output.firstRow.OLDWATERMARKVALUE}' AND ModifiedDate <= '@{activity('Lookup_New_Watermark_Values').output.firstRow.NEWWATERMARKVALUE}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_SQL_SALES_LT_SALES_ORDER_DETAIL",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SQL_DBO_SALES_ORDER_DETAIL",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Update Watermark Value",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Order Data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[spSetWatermark_456]",
+					"storedProcedureParameters": {
+						"TableName": {
+							"value": {
+								"value": "@activity('Lookup_Old_Watermark_Values').output.firstRow.TableName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"NEWTIME": {
+							"value": {
+								"value": "@activity('Lookup_New_Watermark_Values').output.firstRow.NEWWATERMARKVALUE",
+								"type": "Expression"
+							},
+							"type": "Datetime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_SQLDB_INNOVACTION_DB",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"TableName": {
+				"type": "string"
+			},
+			"WaterMarkColumn": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-06-15T17:57:45Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

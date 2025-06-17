@@ -1,0 +1,50 @@
+{
+	"name": "DS_dataenstorageaccount_dataengineering_source_RealHealthcareData1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDataLakeStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "RealHealthcareData1.csv",
+				"folderPath": "source",
+				"fileSystem": "dataengineering"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Patient ID",
+				"type": "String"
+			},
+			{
+				"name": "Name",
+				"type": "String"
+			},
+			{
+				"name": "Age",
+				"type": "String"
+			},
+			{
+				"name": "Diagnosis",
+				"type": "String"
+			},
+			{
+				"name": "Treatment",
+				"type": "String"
+			},
+			{
+				"name": "Files",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

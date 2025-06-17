@@ -1,0 +1,105 @@
+{
+	"name": "DF_RealHealthcareData1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_dataenstorageaccount_dataengineering_source_RealHealthcareData1",
+						"type": "DatasetReference"
+					},
+					"name": "RealHealthcareData1"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_dataenstorageaccount_dataengineering_source_Products",
+						"type": "DatasetReference"
+					},
+					"name": "Products"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_DataFlow_Output",
+						"type": "DatasetReference"
+					},
+					"name": "Output"
+				}
+			],
+			"transformations": [
+				{
+					"name": "HealthCareSelected"
+				},
+				{
+					"name": "QualityCheck"
+				},
+				{
+					"name": "ProductSelected"
+				},
+				{
+					"name": "JoinedStream"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          {Patient ID} as string,",
+				"          Name as string,",
+				"          Age as integer,",
+				"          Diagnosis as string,",
+				"          Treatment as string,",
+				"          Files as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> RealHealthcareData1",
+				"source(output(",
+				"          id as string,",
+				"          Name as string,",
+				"          {Date (UTC)} as string,",
+				"          {Tax Code} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Products",
+				"RealHealthcareData1 select(mapColumn(",
+				"          {Patient ID},",
+				"          Name,",
+				"          Age,",
+				"          Diagnosis,",
+				"          Treatment",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> HealthCareSelected",
+				"HealthCareSelected filter(greater(Age,30)) ~> QualityCheck",
+				"Products select(mapColumn(",
+				"          id,",
+				"          Name,",
+				"          {Date (UTC)},",
+				"          {Tax Code}",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> ProductSelected",
+				"QualityCheck, ProductSelected join({Patient ID} == id,",
+				"     joinType:'outer',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinedStream",
+				"JoinedStream sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id as string,",
+				"          Name as string,",
+				"          {Date (UTC)} as string,",
+				"          {Tax Code} as string",
+				"     ),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> Output"
+			]
+		}
+	}
+}

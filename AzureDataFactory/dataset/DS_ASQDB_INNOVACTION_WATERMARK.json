@@ -1,0 +1,28 @@
+{
+	"name": "DS_ASQDB_INNOVACTION_WATERMARK",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SQLDB_INNOVACTION_DB",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "TableName",
+				"type": "varchar"
+			},
+			{
+				"name": "WaterMarkValue",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "WaterMark"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

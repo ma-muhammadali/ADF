@@ -1,0 +1,9 @@
+{
+	"name": "innovactiondatafactory",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "45577ffe-720a-4c7f-a2ba-7e1c9b6ff0fc",
+		"tenantId": "d373cff4-9ccb-44e6-9f39-1602f25a55aa"
+	}
+}

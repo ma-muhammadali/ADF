@@ -1,0 +1,84 @@
+{
+	"name": "PL_SQL_IncrementalLoad_Parent",
+	"properties": {
+		"activities": [
+			{
+				"name": "LKP_Configuration_Table",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT * FROM [dbo].[ConfigurationTable]\nWHERE TABLENAME ='SalesOrderDetail'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQDB_INNOVACTION_WATERMARK",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_Table",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LKP_Configuration_Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LKP_Configuration_Table').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Execute_PL_SQL_IncreamentalCopy",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_SQL_IncreamentalCopy",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"TableName": {
+										"value": "@item().TableName",
+										"type": "Expression"
+									},
+									"WaterMarkColumn": {
+										"value": "@item().WaterMarkColumn",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2025-06-16T07:22:36Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
